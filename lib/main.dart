@@ -1,10 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() => runApp(const Politica360App());
 
 const navy = Color(0xFF12345A);
 const blue = Color(0xFF2463C5);
 const pale = Color(0xFFF2F6FC);
+Future<void> openOfficialUrl(BuildContext context, String url) async {
+  try {
+    final uri = Uri.parse(url);
+    final opened = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossibile aprire il collegamento.')),
+      );
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Errore nell’apertura del sito.')),
+      );
+    }
+  }
+}
 
 class Politica360App extends StatelessWidget {
   const Politica360App({super.key});
@@ -156,15 +178,66 @@ class InfoCard extends StatelessWidget {
 class TopicPage extends StatelessWidget {
   final String title, subtitle;
   final List<String> items;
-  const TopicPage({super.key, required this.title, required this.subtitle, required this.items});
+
+  const TopicPage({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.items,
+  });
+
+  static const officialLinks = <String, String>{
+    'Attività della Camera': 'https://www.camera.it/',
+    'Attività del Senato': 'https://www.senato.it/HomePage',
+    'Attività del Governo': 'https://www.governo.it/',
+    'Parlamento europeo': 'https://www.europarl.europa.eu/portal/it',
+    'Commissione europea': 'https://commission.europa.eu/index_it',
+    'Consiglio dell’Unione europea': 'https://www.consilium.europa.eu/it/',
+  };
+
   @override
-  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(20), children: [
-    Text(title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: navy)),
-    const SizedBox(height: 6), Text(subtitle, style: const TextStyle(color: Colors.black54)),
-    const SizedBox(height: 18), const Notice(text: 'Sezione predisposta per atti, calendari, resoconti e documenti ufficiali. Collegamento dati da realizzare.'),
-    for (final item in items) InfoCard(tag: 'AREA ISTITUZIONALE', title: item,
-      description: 'Documenti, comunicati, attività e collegamenti alla fonte ufficiale.'),
-  ]);
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.all(20),
+    children: [
+      Text(
+        title,
+        style: const TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.bold,
+          color: navy,
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(subtitle, style: const TextStyle(color: Colors.black54)),
+      const SizedBox(height: 18),
+      const Notice(
+        text: 'Consulta direttamente i portali ufficiali delle istituzioni.',
+      ),
+      for (final item in items)
+        Card(
+          color: Colors.white,
+          elevation: 0,
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: pale,
+              child: Icon(Icons.account_balance, color: blue),
+            ),
+            title: Text(
+              item,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: const Text('Apri il sito istituzionale ufficiale'),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () {
+              final url = officialLinks[item];
+              if (url != null) {
+                openOfficialUrl(context, url);
+              }
+            },
+          ),
+        ),
+    ],
+  );
 }
 
 class PressPage extends StatelessWidget {
@@ -198,8 +271,7 @@ class PressPage extends StatelessWidget {
         title: Text(outlet.$1, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(outlet.$2),
         trailing: const Icon(Icons.open_in_new),
-        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sito: ${outlet.$3} — apri il link dal browser.'))),
+        onTap: () => openOfficialUrl(context, outlet.$3),
       )),
   ]);
 }
