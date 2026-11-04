@@ -1,0 +1,71 @@
+name: Build Politica 360
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.9'
+
+jobs:
+  android-apk:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Generate Android and Windows platform folders
+        run: flutter create . --platforms=android,windows
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build release APK
+        run: flutter build apk --release
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Politica360-Android-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+  windows-app:
+    name: Windows application
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Generate Android and Windows platform folders
+        run: flutter create . --platforms=android,windows
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build Windows release
+        run: flutter build windows --release
+      - name: Package Windows folder
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath Politica360-Windows-x64.zip -Force
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Politica360-Windows-x64
+          path: Politica360-Windows-x64.zip
+          if-no-files-found: error
